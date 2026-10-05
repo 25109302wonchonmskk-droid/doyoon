@@ -40,7 +40,7 @@ body[data-sport=basketball] .match-row .score-line{font-size:19px;gap:6px;letter
 @media(max-width:370px){body[data-sport=basketball] .match-main{grid-template-columns:27px minmax(0,1fr) 62px minmax(0,1fr) 6px}body[data-sport=basketball] .match-row .score-line{font-size:15px;gap:4px}}
 
 /* Standings remain visible on desktop and follow results on narrow screens. */
-.page-shell{grid-template-columns:170px minmax(0,1fr) 320px;gap:24px}
+.page-shell{grid-template-columns:170px minmax(0,1fr) 380px;gap:24px}
 .right-sidebar{display:block;min-width:0;padding-top:0}
 .right-sidebar .live-panel{margin-top:18px}
 .standings-panel{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden;scroll-margin-top:18px}
@@ -55,10 +55,10 @@ body[data-sport=basketball] .match-row .score-line{font-size:19px;gap:6px;letter
 .standings-season{font-size:10px;color:#8a989d;margin:11px 17px 13px}
 .standings-notice{font-size:10px;background:#fff5e5;color:#947347;line-height:1.8;margin:0 15px 12px;padding:9px;border-radius:6px}
 .standings-scroll{max-height:520px;overflow:auto;scrollbar-width:thin;scrollbar-color:#ccd5c6 transparent}
-.standings-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:10px;font-variant-numeric:tabular-nums}
+.standings-table{width:100%;min-width:380px;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:10px;font-variant-numeric:tabular-nums}
 .standings-table caption{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 .standings-table thead th{position:sticky;top:0;z-index:2;background:#f5f7f3;border-top:1px solid #e9ede6;border-bottom:1px solid #e9ede6;color:#86947e;font-size:9px;font-weight:500;height:32px;text-align:center}
-.standings-table th.rank-team-heading{text-align:left;width:40%}
+.standings-table th.rank-team-heading{text-align:left;width:32%}
 .standings-table .rank-number{width:32px;text-align:center;color:#9aa5a3;font-size:10px}
 .standings-table tbody td{height:39px;text-align:center;border-bottom:1px solid #f0f3ee;color:#788784;padding:4px 2px}
 .standings-table tbody th{font-weight:500;text-align:left;border-bottom:1px solid #f0f3ee;min-width:0;padding:5px 4px 5px 0}
@@ -66,6 +66,11 @@ body[data-sport=basketball] .match-row .score-line{font-size:19px;gap:6px;letter
 .standings-table tbody tr:hover>*{background:#f7f9f3}
 .standings-table td.rank-key-stat{font-weight:650;color:#536d40}
 .standings-table td.rank-first{color:#52743d;font-weight:750}
+.standings-table th.rank-recent-heading{width:90px}
+.standings-table td.rank-recent{font-size:9px;line-height:1.5;padding:5px 3px;color:#465853}
+.rank-recent .recent-record{display:block;white-space:nowrap;font-weight:600}
+.rank-recent small{display:block;font-size:8px;font-weight:400;color:#76847f}
+.recent-unavailable{font-size:9px;color:#87938e}
 .rank-team{display:flex;align-items:center;gap:6px;min-width:0}
 .rank-team>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#465853}
 .rank-team-label{display:flex;align-items:center;gap:4px;flex:1}
@@ -81,7 +86,7 @@ body[data-sport=basketball] .match-row .score-line{font-size:19px;gap:6px;letter
 .standings-empty .loader{width:22px;height:22px}
 .standings-opening{font-size:10px;color:#81916b;background:#f5f8ed;padding:9px 16px}
 .mobile-standings-link{display:none;font-size:10px;color:#71885a;margin:10px 0 0 13px}
-@media(min-width:1450px){.page-shell{grid-template-columns:180px minmax(0,1fr) 340px;gap:28px}.standings-table{font-size:11px}}
-@media(max-width:1180px){.page-shell{grid-template-columns:minmax(0,1fr) 300px;gap:24px 20px}.right-sidebar{display:block}.league-sidebar{grid-column:1/-1;padding:0}.league-sidebar .side-title,.league-sidebar h2,.league-sidebar .side-note,.league-sidebar .source-small{display:none}.league-list{display:flex;overflow-x:auto;gap:6px;padding:2px 1px 6px;scrollbar-width:thin}.league-button{white-space:nowrap;flex:none;width:auto;border:1px solid var(--line);background:white;padding:8px 11px;gap:7px}.league-button.selected{border-color:#dce5cd;background:#eaf0e0}.league-button>span:last-child{margin-left:3px}.board-controls{flex-wrap:wrap;gap:10px}.right-sidebar .live-panel,.right-sidebar .quick-guide,.right-sidebar .timezone-note{display:none}}
-@media(max-width:850px){.page-shell{grid-template-columns:minmax(0,1fr);gap:23px}.right-sidebar{grid-column:1;display:block}.standings-scroll{max-height:470px}.standings-table{font-size:12px}.standings-table thead th{font-size:10px}.standings-table tbody td{height:41px}.standings-table th.rank-team-heading{width:43%}.standings-table .rank-number{width:36px}.standings-heading h2{font-size:20px}.standings-select-label select{font-size:12px}.standings-foot{font-size:10px}.mobile-standings-link{display:inline-block}}
-@media(max-width:580px){.page-shell{gap:18px}.standings-table{font-size:10px}.standings-table th.rank-team-heading{width:38%}.standings-table .rank-number{width:30px}.standings-select-label select{font-size:11px}.standings-foot{font-size:9px}}
+@media(min-width:1450px){.page-shell{grid-template-columns:180px minmax(0,1fr) 400px;gap:28px}.standings-table{font-size:11px}}
+@media(max-width:1180px){.page-shell{grid-template-columns:minmax(0,1fr) 360px;gap:24px 20px}.right-sidebar{display:block}.league-sidebar{grid-column:1/-1;padding:0}.league-sidebar .side-title,.league-sidebar h2,.league-sidebar .side-note,.league-sidebar .source-small{display:none}.league-list{display:flex;overflow-x:auto;gap:6px;padding:2px 1px 6px;scrollbar-width:thin}.league-button{white-space:nowrap;flex:none;width:auto;border:1px solid var(--line);background:white;padding:8px 11px;gap:7px}.league-button.selected{border-color:#dce5cd;background:#eaf0e0}.league-button>span:last-child{margin-left:3px}.board-controls{flex-wrap:wrap;gap:10px}.right-sidebar .live-panel,.right-sidebar .quick-guide,.right-sidebar .timezone-note{display:none}}
+@media(max-width:850px){.page-shell{grid-template-columns:minmax(0,1fr);gap:23px}.right-sidebar{grid-column:1;display:block}.standings-scroll{max-height:470px}.standings-table{font-size:12px}.standings-table thead th{font-size:10px}.standings-table tbody td{height:41px}.standings-table th.rank-team-heading{width:32%}.standings-table .rank-number{width:36px}.standings-heading h2{font-size:20px}.standings-select-label select{font-size:12px}.standings-foot{font-size:10px}.mobile-standings-link{display:inline-block}}
+@media(max-width:580px){.page-shell{gap:18px}.standings-table{font-size:10px}.standings-table th.rank-team-heading{width:32%}.standings-table .rank-number{width:30px}.standings-select-label select{font-size:11px}.standings-foot{font-size:9px}}
