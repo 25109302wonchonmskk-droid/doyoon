@@ -11,7 +11,8 @@
 - 30초 자동 갱신, 수동 새로고침, 진행/종료/예정 상태 필터
 - 팀 이름 검색, 경기 즐겨찾기, 경기 상세 및 데이터 제공처 원문 연결
 - 종목별 쿼터·이닝·피리어드·연장전 상태 및 구간별 득점표
-- 데스크톱과 모바일 반응형 화면
+- 오른쪽 리그 순위표: 12개 리그, 컨퍼런스·지구 선택, 시즌·확인 시각 표시
+- 데스크톱과 모바일 반응형 화면 (좁은 화면에서는 순위표를 경기 목록 아래에 표시)
 
 ## 데이터
 
@@ -30,8 +31,10 @@ Vercel Function `/api/scores?date=YYYY-MM-DD&sport=basketball`이 경기 데이�
 - `index.html`, `styles.css`, `app.js`: 화면과 클라이언트 기능
 - `sports.mjs`: 종목과 리그 목록, 한국 날짜, 스코어·진행 상태 정규화, 즐겨찾기 이전
 - `kbo.mjs`: 네이버 스포츠 KBO 응답의 한국 시간·팀·상태 정규화
-- `api/scores.js`: Vercel Node.js 24 서버 함수
-- `vercel.json`: 함수 최대 30초와 응답 헤더
+- `api/scores.js`: Vercel Node.js 24 경기 서버 함수
+- `standings.mjs`, `api/standings.js`: ESPN·네이버 스포츠의 리그 순위 정규화와 서버 함수
+- `standings-ui.mjs`: 순위표, 리그·그룹 선택, 캐시·갱신·요청 경합 처리
+- `vercel.json`: 경기·순위 함수 최대 30초와 응답 헤더
 - `tests/football.test.mjs`: 기존 축구, 날짜 경계, 스코어, 오류 처리 회귀 테스트
 - `tests/sports.test.mjs`: 추가 종목의 상태·득점, 종목별 API, 즐겨찾기 테스트
 - `tests/kbo.test.mjs`: 한국 시각, 취소·중단, 승패, 즐겨찾기, 소스 실패 처리 테스트
@@ -40,12 +43,17 @@ Vercel Function `/api/scores?date=YYYY-MM-DD&sport=basketball`이 경기 데이�
 
 KBO는 `/api/scores?sport=baseball&league=kbo&date=YYYY-MM-DD`로 조회합니다. 네이버 스포츠 공개 경기 응답을 사용하며, 예정 경기의 초기 0점과 취소·중단 상태를 구분합니다. 네이버의 시간대 없는 경기 시각은 한국 시간으로 해석합니다. KBO 상세에는 제공되는 총점과 진행 이닝을 표시하며, 이닝별 득점표는 현재 제공하지 않습니다. KBO 경기 ID에 별도 접두사를 붙여 MLB 즐겨찾기와 구분합니다.
 
+순위는 `/api/standings?league=kbo`처럼 리그 ID로 요청합니다. KBO는 네이버 스포츠 팀 기록, 나머지는 ESPN standings를 사용합니다. ESPN에는 `seasontype=2`(축구는 1)를 요청하여 프리시즌·포스트시즌 성적과 정규시즌 성적을 구분합니다. API의 상위 시즌 표기가 다른 경우 실제 순위 테이블의 시즌 연도를 사용합니다. 순위는 경기 날짜와 관계없이 최신 시즌 기준이며 5분 CDN 캐시와 브라우저 갱신을 사용합니다.
+
+MLB·NFL은 지구별, NBA·WNBA·NHL은 컨퍼런스별로 표시합니다. 제공된 순위·시드 순서를 유지하며 MLB·NFL의 지구 내 순위는 해당 지구의 순서로 표시합니다. 개막 전 0경기 팀은 순위를 만들지 않고 `–`로 표시합니다. 순위 연결 실패는 별도 오류를 표시하며 경기 결과 기능과 독립적으로 처리합니다.
+
 검사: `npm test` 및 `node --check app.js`.
-30개 자동 검사를 통과했습니다. 축구 6개 리그에 더해 NBA·WNBA·MLB·NFL·NHL의 실제 ESPN 응답, 한국 날짜로 정규화된 경기 목록과 구간별 득점을 확인했습니다. KBO는 실제 예정·완료·취소 경기와 경기가 없는 날짜를 확인했습니다. 제작 환경의 미리보기 도구 제약으로 실제 브라우저 화면 검증은 수행하지 못했습니다.
+41개 자동 검사를 통과했습니다. 축구 6개 리그에 더해 NBA·WNBA·MLB·NFL·NHL의 실제 ESPN 응답, 한국 날짜로 정규화된 경기 목록과 구간별 득점을 확인했습니다. KBO는 실제 예정·완료·취소 경기와 경기가 없는 날짜를 확인했습니다. 12개 리그의 실제 순위 데이터와 정규시즌 개막 전 NBA 표시를 확인했습니다. 제작 환경의 미리보기 도구 제약으로 실제 브라우저 화면 검증은 수행하지 못했습니다.
 
 참고:
 - https://m.sports.naver.com/kbaseball/schedule/index
 - https://api-gw.sports.naver.com/schedule/games
+- https://site.web.api.espn.com/apis/v2/sports/soccer/eng.1/standings
 - https://www.espn.com/soccer/scoreboard
 - https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard
 - https://vercel.com/docs/functions/runtimes/node-js
