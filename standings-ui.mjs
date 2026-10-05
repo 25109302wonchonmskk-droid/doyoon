@@ -21,9 +21,10 @@ export function createStandingsPanel({getSport,getLeague,onLeagueChange,teamName
   if(!rows.length){$('#standings-content').innerHTML='<div class="standings-empty"><p>아직 등록된 순위가 없습니다.</p></div>';}
   else{
    const value=(row,key)=>key==='pct'?(row.stats.pct===null?'–':Number(row.stats.pct).toFixed(3).replace(/^0/,'')):cell(row.stats[key]);
-   $('#standings-content').innerHTML=`${data.notStarted?'<p class="standings-opening">정규시즌 개막 전 · 순위 미정</p>':''}<div class="standings-scroll" tabindex="0" aria-label="${esc(group.name)} 전체 순위"><table class="standings-table"><caption>${esc(league.name)} · ${esc(group.name)} 순위</caption><thead><tr><th scope="col" class="rank-number">순위</th><th scope="col" class="rank-team-heading">팀</th>${data.columns.map(c=>`<th scope="col" title="${esc(c.title)}" aria-label="${esc(c.title)}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr><td class="rank-number ${row.rank===1?'rank-first':''}">${cell(row.rank)}</td><th scope="row"><span class="rank-team" title="${esc(teamName(row.team))}">${logo(row.team)}<span>${esc(teamName(row.team))}</span></span></th>${data.columns.map(c=>`<td class="${['points','pct'].includes(c.key)?'rank-key-stat':''}">${esc(value(row,c.key))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+   const streakBadge=row=>Number.isSafeInteger(row.losingStreak)&&row.losingStreak>=3?`<span class="rank-loss-streak" title="${esc(league.name)} 현재 ${row.losingStreak}연패">${row.losingStreak}연패</span>`:'';
+   $('#standings-content').innerHTML=`${data.notStarted?'<p class="standings-opening">정규시즌 개막 전 · 순위 미정</p>':''}<div class="standings-scroll" tabindex="0" aria-label="${esc(group.name)} 전체 순위"><table class="standings-table"><caption>${esc(league.name)} · ${esc(group.name)} 순위</caption><thead><tr><th scope="col" class="rank-number">순위</th><th scope="col" class="rank-team-heading">팀</th>${data.columns.map(c=>`<th scope="col" title="${esc(c.title)}" aria-label="${esc(c.title)}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr><td class="rank-number ${row.rank===1?'rank-first':''}">${cell(row.rank)}</td><th scope="row"><span class="rank-team" title="${esc(teamName(row.team))}">${logo(row.team)}<span class="rank-team-label"><span class="rank-team-name">${esc(teamName(row.team))}</span>${streakBadge(row)}</span></span></th>${data.columns.map(c=>`<td class="${['points','pct'].includes(c.key)?'rank-key-stat':''}">${esc(value(row,c.key))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
-  $('#standings-foot').innerHTML=`<span>경기 날짜와 관계없는 최신 시즌 순위</span>${data.sport==='hockey'?'<span>OT패: 연장·슛아웃 패배</span>':''}<span>${esc(time(data.fetchedAt))} 확인 · 5분마다 갱신</span><a href="${esc(data.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(data.source)} 순위 원문 ↗</a>`;
+  $('#standings-foot').innerHTML=`<span>경기 날짜와 관계없는 최신 시즌 순위</span><span>3연패 이상 표시 · 선택한 리그 기록 기준</span>${data.streaksIncomplete?'<span>일부 팀의 연패 기록을 확인하지 못했습니다.</span>':''}${data.sport==='hockey'?'<span>OT패: 연장·슛아웃 패배</span>':''}<span>${esc(time(data.fetchedAt))} 확인 · 5분마다 갱신</span><a href="${esc(data.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(data.source)} 순위 원문 ↗</a>`;
  }
  async function sync(force=false){
   const available=leaguesForSport(getSport()),selected=getLeague();
@@ -36,7 +37,7 @@ export function createStandingsPanel({getSport,getLeague,onLeagueChange,teamName
   const saved=cache.get(next);
   if(!force&&saved&&Date.now()-saved.savedAt<300000){data=saved.data;loading=false;error='';render();return;}
   controller=new AbortController();const signal=controller.signal;
-  const timeout=setTimeout(()=>{if(thisRequest===requestId)controller.abort();},22000);
+  const timeout=setTimeout(()=>{if(thisRequest===requestId)controller.abort();},28000);
   loading=true;error='';render();
   try{
    const response=await fetch(`/api/standings?league=${encodeURIComponent(next)}`,{signal,headers:{Accept:'application/json'},cache:'no-store'});const json=await response.json();

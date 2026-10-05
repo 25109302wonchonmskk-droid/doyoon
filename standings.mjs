@@ -1,4 +1,5 @@
 import {LEAGUES,kstDate,safeUrl} from './sports.mjs';
+import {espnLosingStreak,kboLosingStreak,addSoccerStreaks} from './streaks.mjs';
 
 const finite=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))?Number(value):null;
 const stat=(stats,...names)=>{for(const name of names){const item=stats.find(s=>s.name===name);const value=finite(item?.value);if(value!==null)return value;}return null;};
@@ -30,7 +31,7 @@ export function parseEspnStandings(data,league){
    const s=entry.stats,wins=stat(s,'wins'),losses=stat(s,'losses'),ties=stat(s,'ties'),otLosses=stat(s,'otLosses','overtimeLosses');
    const played=stat(s,'gamesPlayed')??(wins!==null&&losses!==null?wins+losses+(ties||0)+(league.sport==='hockey'?(otLosses||0):0):null);
    const rank=stat(s,'rank','playoffSeed');
-   return {rank:played===0||rank===null||rank<1?null:rank,team:{id:String(entry.team.id),name:String(entry.team.displayName),shortName:String(entry.team.shortDisplayName||entry.team.displayName),abbreviation:String(entry.team.abbreviation||''),logo:safeUrl(entry.team.logos?.[0]?.href,['a.espncdn.com'])},stats:{played,wins,losses,ties,pct:stat(s,'winPercent'),points:stat(s,'points'),otLosses}};
+   return {rank:played===0||rank===null||rank<1?null:rank,team:{id:String(entry.team.id),name:String(entry.team.displayName),shortName:String(entry.team.shortDisplayName||entry.team.displayName),abbreviation:String(entry.team.abbreviation||''),logo:safeUrl(entry.team.logos?.[0]?.href,['a.espncdn.com'])},stats:{played,wins,losses,ties,pct:stat(s,'winPercent'),points:stat(s,'points'),otLosses},losingStreak:espnLosingStreak(s,played)};
   });
   rows.sort((a,b)=>(a.rank??Infinity)-(b.rank??Infinity));
   // A conference seed establishes order within each division, not its rank number.
@@ -47,12 +48,13 @@ export function parseKboStandings(data,year){
  const rows=teams.map(t=>{
   if(t.categoryId!=='kbo'||Number(t.seasonId)!==year||!t.teamId||!t.teamName)throw new Error('KBO 순위 시즌 정보 오류');
   const played=finite(t.gameCount),rank=finite(t.ranking);
-  return {rank:played===0||rank===null||rank<1?null:rank,team:{id:String(t.teamId),name:String(t.keyword||t.teamName),shortName:String(t.teamShortName||t.teamName),abbreviation:String(t.teamShortName||t.teamName),logo:safeUrl(t.teamImageUrl,['sports-phinf.pstatic.net'])},stats:{played,wins:finite(t.winGameCount),ties:finite(t.drawnGameCount),losses:finite(t.loseGameCount),pct:finite(t.wra)}};
+  return {rank:played===0||rank===null||rank<1?null:rank,team:{id:String(t.teamId),name:String(t.keyword||t.teamName),shortName:String(t.teamShortName||t.teamName),abbreviation:String(t.teamShortName||t.teamName),logo:safeUrl(t.teamImageUrl,['sports-phinf.pstatic.net'])},stats:{played,wins:finite(t.winGameCount),ties:finite(t.drawnGameCount),losses:finite(t.loseGameCount),pct:finite(t.wra)},losingStreak:kboLosingStreak(t.continuousGameResult,played)};
  });
  rows.sort((a,b)=>(a.rank??Infinity)-(b.rank??Infinity));
  return {season:{year,label:String(year),type:'정규시즌'},groups:[{id:'kbo',name:'KBO 리그',rows}],notStarted:rows.every(r=>r.stats.played===0),source:'네이버 스포츠',sourceUrl:'https://m.sports.naver.com/kbaseball/record/index?category=kbo'};
 }
 export async function getStandings(leagueId,fetcher=fetch,now=new Date()){
+ const deadline=Date.now()+27000;
  const league=LEAGUES.find(l=>l.id===leagueId);if(!league)throw new Error('INVALID_LEAGUE');
  let result;
  if(leagueId==='kbo'){
@@ -67,6 +69,8 @@ export async function getStandings(leagueId,fetcher=fetch,now=new Date()){
   const response=await fetcher(url.href,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(16000)});
   if(!response.ok)throw new Error(`UPSTREAM_${response.status}`);
   result=parseEspnStandings(await response.json(),league);
+  if(league.sport==='soccer')await addSoccerStreaks(result,league,fetcher,now,deadline);
  }
- return {league:league.id,sport:league.sport,...result,columns:standingsColumns(league),fetchedAt:new Date(now).toISOString()};
+ const streaksIncomplete=result.groups.some(g=>g.rows.some(row=>row.losingStreak===null&&(row.stats.losses===null||row.stats.losses>=3)));
+ return {league:league.id,sport:league.sport,...result,streaksIncomplete,columns:standingsColumns(league),fetchedAt:new Date(now).toISOString()};
 }
