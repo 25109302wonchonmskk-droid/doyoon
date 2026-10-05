@@ -1,4 +1,4 @@
-import {SUBJECTS,MODES,id,dateKey,newTimer,remaining,start,pause,elapsed,finish,dailyTotals,durationOnDay,initialState,validateData} from './core.mjs';
+import {SUBJECTS,MODES,MAX_MINUTES,resizeTimer,timerForTask,mergeBackup,id,dateKey,newTimer,remaining,start,pause,elapsed,finish,dailyTotals,durationOnDay,initialState,validateData} from './core.mjs';
 
 const KEY='doyoon-study-v1';
 const $=s=>document.querySelector(s);
@@ -63,13 +63,13 @@ document.addEventListener('click',async e=>{const add=e.target.closest('[data-ad
  if(action.dataset.taskAction==='toggle'){t.done=!t.done;save();renderAll();}
  if(action.dataset.taskAction==='edit')openTask(t.date,t);
  if(action.dataset.taskAction==='delete'&&await confirmAction('이 계획을 삭제할까요?',t.title,'삭제')){state.tasks=state.tasks.filter(task=>task.id!==t.id);save();renderAll();toast('계획을 삭제했어요.');}
- if(action.dataset.taskAction==='focus'&&await allowReplace()){state.timer={...newTimer('focus',Math.min(t.minutes,180),t.subject),taskId:t.id,taskTitle:t.title};save();location.hash='desk';renderTimer();toast('타이머가 준비됐어요. 집중 시작을 눌러주세요.');$('#start-timer').focus();}
+ if(action.dataset.taskAction==='focus'&&await allowReplace()){state.timer=timerForTask(t);save();location.hash='desk';renderTimer();toast('타이머가 준비됐어요. 집중 시작을 눌러주세요.');$('#start-timer').focus();}
 });
 $('#start-timer').onclick=()=>{if(state.sound)prepareAudio();state.timer=state.timer.running?pause(state.timer):start(state.timer);save();renderTimer();};
 $('#finish-timer').onclick=()=>completeTimer();
 $('#reset-timer').onclick=async()=>{if(await allowReplace()){state.timer=newTimer(state.timer.mode,state.timer.durationMs/60000,state.timer.subject);save();renderTimer();}};
 $$('[data-mode]').forEach(el=>el.onclick=async()=>{if(el.dataset.mode===state.timer.mode)return;if(await allowReplace()){state.timer=newTimer(el.dataset.mode,MODES[el.dataset.mode],state.timer.subject);save();renderTimer();}});
-$('#timer-minutes').onchange=()=>{const input=$('#timer-minutes');if(!input.value||!input.checkValidity()){toast('시간은 1~180분 사이의 정수로 입력해 주세요.');input.value=state.timer.durationMs/60000;return;}state.timer=newTimer(state.timer.mode,Number(input.value),state.timer.subject);save();renderTimer();};
+$('#timer-minutes').onchange=()=>{const input=$('#timer-minutes');if(!input.value||!input.checkValidity()){toast(`시간은 1~${MAX_MINUTES}분 사이의 정수로 입력해 주세요.`);input.value=state.timer.durationMs/60000;return;}state.timer=resizeTimer(state.timer,Number(input.value));save();renderTimer();};
 $('#timer-subject').onchange=()=>{state.timer.subject=$('#timer-subject').value;save();};
 $('#sound-toggle').onclick=()=>{state.sound=!state.sound;if(state.sound)prepareAudio();save();renderTimer();toast(state.sound?'종료 알림 소리를 켰어요.':'종료 알림 소리를 껐어요.');};
 $('#plan-date').value=selectedDate;$('#plan-date').onchange=()=>{if(!$('#plan-date').value){$('#plan-date').value=selectedDate;return;}selectedDate=$('#plan-date').value;renderTasks();};
@@ -77,13 +77,41 @@ $('#go-today').onclick=()=>{selectedDate=dateKey();$('#plan-date').value=selecte
 $$('[data-filter]').forEach(el=>el.onclick=()=>{filter=el.dataset.filter;$$('[data-filter]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn===el)));renderTasks();});
 $('#record-date').value=dateKey();$('#record-date').onchange=renderRecords;
 $('#data-settings').onclick=()=>$('#data-dialog').showModal();
-const mobileData=document.createElement('button');mobileData.className='icon-button data-mobile';mobileData.style.display='none';mobileData.setAttribute('aria-label','데이터 관리');mobileData.innerHTML=icon('database');mobileData.onclick=()=>$('#data-dialog').showModal();$('.topbar-right').prepend(mobileData);
+const mobileData=document.createElement('button');mobileData.className='icon-button data-mobile';mobileData.setAttribute('aria-label','데이터 관리');mobileData.innerHTML=icon('database');mobileData.onclick=()=>$('#data-dialog').showModal();$('.topbar-right').prepend(mobileData);
 function exportData(){const snapshot=JSON.stringify({version:state.version,tasks:state.tasks,sessions:state.sessions,sound:state.sound,exportedAt:new Date().toISOString()},null,2);const url=URL.createObjectURL(new Blob([snapshot],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download=`doyoon-study-${dateKey()}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('백업 파일을 저장했어요. 진행 중인 시간은 종료 후 백업하세요.');}
 $('#export-records').onclick=exportData;$('#backup-data').onclick=exportData;
-$('#import-data').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>10000000)throw new Error('10MB 이하의 백업 파일을 선택해 주세요.');const loaded=validateData(JSON.parse(await file.text()));const taskIds=new Set(state.tasks.map(t=>t.id)),sessionIds=new Set(state.sessions.map(s=>s.id));const tasks=loaded.tasks.filter(t=>!taskIds.has(t.id)),sessions=loaded.sessions.filter(s=>!sessionIds.has(s.id));state.tasks.push(...tasks);state.sessions.push(...sessions);save();renderAll();toast(`계획 ${tasks.length}개, 기록 ${sessions.length}개를 추가했어요.`);}catch(err){toast(err instanceof SyntaxError?'올바른 JSON 백업 파일이 아닙니다.':err.message,6000);}finally{e.target.value='';}};
+function reportImport(message,duration=6000){$('#import-status').textContent=message;toast(message,duration);}
+let importBusy=false;
+$('#import-data').onchange=async e=>{
+ const input=e.target,file=input.files[0];
+ if(!file||importBusy)return;
+ const policy=$('#import-policy').value;
+ importBusy=true;input.disabled=true;$('#import-status').textContent='백업 파일을 확인하고 있어요.';
+ try{
+  if(file.size>10000000)throw new Error('10MB 이하의 백업 파일을 선택해 주세요.');
+  const loaded=validateData(JSON.parse(await file.text()));
+  let merged=mergeBackup(state,loaded,policy);
+  if(merged.counts.updatedTasks){
+   const before=JSON.stringify(state.tasks);
+   const accepted=await confirmAction('기존 계획을 파일 내용으로 바꿀까요?',`내용이 다른 계획 ${merged.counts.updatedTasks}개를 변경합니다. 필요하면 취소 후 현재 데이터를 먼저 백업하세요.`,'계획 변경');
+   if(!accepted){reportImport('불러오기를 취소했어요.');return;}
+   if(JSON.stringify(state.tasks)!==before)throw new Error('확인 중 다른 탭에서 계획이 변경됐습니다. 파일을 다시 선택해 주세요.');
+   // Timer completion and records in other tabs may change while the dialog is open.
+   merged=mergeBackup(state,loaded,policy);
+  }
+  const previous=state;
+  state=merged.state;
+  if(!save()){state=previous;renderAll();reportImport('저장하지 못해 불러오기를 취소했어요. 기존 데이터는 유지됩니다.',7000);return;}
+  renderAll();
+  const c=merged.counts;
+  reportImport(`계획 ${c.addedTasks}개 추가 · ${c.updatedTasks}개 변경 · ${c.keptTasks}개 기존 내용 유지 · 기록 ${c.addedSessions}개 추가`,7000);
+ }catch(err){reportImport(err instanceof SyntaxError?'올바른 JSON 백업 파일이 아닙니다.':err.message,6000);}
+ finally{input.value='';input.disabled=false;importBusy=false;}
+};
 window.addEventListener('hashchange',route);
 window.addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;try{state=validateData(JSON.parse(e.newValue),true);renderAll();}catch{toast('다른 탭의 데이터를 읽지 못했습니다.');}});
 function tick(){if(state.timer.running&&remaining(state.timer)===0)completeTimer(true);else renderTimer();if(dateKey()!==lastDay){lastDay=dateKey();renderDate();renderAll();}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick();});
+$('#timer-minutes').max=MAX_MINUTES;$('#task-minutes').max=MAX_MINUTES;
 hydrateIcons();renderDate();renderAll();route();tick();setInterval(tick,500);
 if(loadIssue)toast('저장 데이터를 읽지 못했습니다. 백업 파일이 있다면 데이터 관리에서 불러오세요.',9000);
