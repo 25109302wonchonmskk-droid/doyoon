@@ -1,1 +1,59 @@
-hello
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#24483d">
+  <meta name="description" content="집중 타이머, 날짜별 학습 계획, 공부 기록. 나만의 공부 공간 doyoon study.">
+  <title>doyoon study — 나만의 공부 공간</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 건너뛰기</a>
+  <aside class="sidebar">
+    <a class="brand" href="#desk" aria-label="doyoon study 홈"><span class="brand-mark">d.</span><span>doyoon<span class="brand-sub">STUDY SPACE</span></span></a>
+    <span class="nav-label">MY WORKSPACE</span>
+    <nav aria-label="메인 메뉴">
+      <a href="#desk" data-nav="desk"><span data-icon="grid"></span>내 공부 책상<span class="nav-dot"></span></a>
+      <a href="#planner" data-nav="planner"><span data-icon="calendar"></span>학습 계획</a>
+      <a href="#records" data-nav="records"><span data-icon="chart"></span>공부 기록</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="desk-note"><span class="tiny-star">✳</span><p>한 번에 하나씩.<br>나의 속도로 쌓아가는 시간.</p><span>MAKE ROOM TO FOCUS</span></div>
+      <button class="storage-button" id="data-settings"><span data-icon="database"></span>데이터 관리<span data-icon="arrow"></span></button>
+      <div class="local-note"><span class="status-dot"></span>이 브라우저에 저장됩니다</div>
+    </div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><div class="breadcrumb">내 공간 <span>/</span> <strong id="breadcrumb">공부 책상</strong></div><div class="topbar-right"><span id="header-date"></span><span class="profile" aria-label="나의 공부 공간">D</span></div></header>
+    <main id="main" tabindex="-1">
+      <section id="desk-view" class="view" aria-labelledby="desk-title">
+        <div class="page-intro"><div><span class="eyebrow">YOUR DAILY STUDY DESK</span><h1 id="desk-title">오늘의 한 걸음, 차곡차곡<span class="green-period">.</span></h1><p>해야 할 일은 가볍게 정리하고, 지금은 한 가지에 집중하세요.</p></div><div class="date-badge"><span id="weekday-label"></span><strong id="day-label"></strong><small id="month-label"></small></div></div>
+        <div class="stats-grid" id="desk-stats"></div>
+        <div class="desk-grid">
+          <section class="card timer-card" aria-labelledby="timer-title">
+            <div class="card-heading"><h2 id="timer-title"><span data-icon="clock"></span>집중 타이머</h2><button class="icon-button" id="sound-toggle" aria-label="종료 알림 소리 켜기" aria-pressed="false"><span data-icon="sound"></span></button></div>
+            <div class="timer-tabs" role="group" aria-label="타이머 종류"><button data-mode="focus" aria-pressed="true">집중</button><button data-mode="short" aria-pressed="false">짧은 휴식</button><button data-mode="long" aria-pressed="false">긴 휴식</button></div>
+            <div class="timer-orbit"><svg class="timer-ring" viewBox="0 0 260 260" aria-hidden="true"><circle class="ring-track" cx="130" cy="130" r="116"/><circle id="ring-progress" cx="130" cy="130" r="116"/></svg><div class="timer-face"><span class="timer-caption" id="timer-caption">TIME TO FOCUS</span><span class="timer-digits" id="timer-digits" role="timer" aria-label="남은 시간">25:00</span><span class="timer-status" id="timer-status">집중할 준비가 되었나요?</span></div><span class="orbit-leaf" aria-hidden="true">✳</span></div>
+            <div class="timer-settings"><label for="timer-subject" class="sr-only">집중할 과목</label><select id="timer-subject"><option>자율 학습</option><option>국어</option><option>수학</option><option>영어</option><option>과학</option><option>사회</option><option>기타</option></select><label class="duration-label"><input id="timer-minutes" type="number" min="1" max="180" value="25" aria-label="타이머 시간 (분)"><span>분</span></label></div>
+            <div class="timer-controls"><button id="reset-timer" class="icon-button reset" aria-label="타이머 초기화"><span data-icon="reset"></span></button><button id="start-timer" class="button primary"><span data-icon="play"></span><span id="start-label">집중 시작</span></button><button id="finish-timer" class="icon-button finish" aria-label="여기까지 기록하고 타이머 종료" disabled><span data-icon="stop"></span></button></div>
+            <p class="timer-footnote" id="timer-footnote">집중한 시간은 공부 기록에 자동으로 쌓여요.</p>
+          </section>
+          <section class="card today-card" aria-labelledby="today-title"><div class="card-heading"><h2 id="today-title"><span data-icon="checklist"></span>오늘의 할 일 <span class="count-pill" id="today-task-count">0</span></h2><button class="text-button" data-add-task="today"><span data-icon="plus"></span>추가</button></div><div class="completion-summary"><span id="today-completion">오늘 계획을 세워보세요</span><strong id="today-percentage">0%</strong></div><div class="progress-track"><span id="today-progress"></span></div><div id="today-tasks" class="task-list"></div><button class="add-task-line" data-add-task="today"><span data-icon="plus"></span>새로운 할 일 추가</button><a href="#planner" class="all-plans">전체 학습 계획 보기 <span data-icon="arrow"></span></a></section>
+        </div>
+        <section class="card weekly-card" aria-labelledby="week-title"><div class="card-heading"><div><span class="eyebrow">LITTLE BY LITTLE</span><h2 id="week-title">시간이 모여 습관이 되는 중</h2></div><a href="#records" class="text-button">기록 보기<span data-icon="arrow"></span></a></div><div class="weekly-content"><div class="weekly-copy"><span>최근 7일 집중 시간</span><strong id="week-total">0<span>분</span></strong><p>타이머로 쌓은 시간을<br>하루씩 확인해 보세요.</p></div><div id="week-chart" class="week-chart" role="img" aria-label="최근 7일 공부 시간"></div></div></section>
+      </section>
+      <section id="planner-view" class="view" hidden aria-labelledby="planner-title"><div class="page-intro"><div><span class="eyebrow">A SMALL PLAN, A CLEAR MIND</span><h1 id="planner-title">학습 계획<span class="green-period">.</span></h1><p>날짜를 고르고, 오늘 끝낼 수 있는 만큼 계획하세요.</p></div><button class="button primary" data-add-task="selected"><span data-icon="plus"></span>할 일 추가</button></div><div class="card planner-card"><div class="planner-toolbar"><label for="plan-date">계획 날짜 <input type="date" id="plan-date" required></label><button id="go-today" class="button subtle">오늘</button><div class="filter-tabs" role="group" aria-label="계획 필터"><button data-filter="all" aria-pressed="true">전체</button><button data-filter="todo" aria-pressed="false">미완료</button><button data-filter="done" aria-pressed="false">완료</button></div></div><div id="planner-summary" class="planner-summary"></div><div id="planner-tasks" class="task-list"></div></div></section>
+      <section id="records-view" class="view" hidden aria-labelledby="records-title"><div class="page-intro"><div><span class="eyebrow">YOUR TIME, WELL SPENT</span><h1 id="records-title">공부 기록<span class="green-period">.</span></h1><p>집중한 시간만큼 남는 나만의 학습 기록.</p></div><button class="button subtle" id="export-records"><span data-icon="download"></span>기록 백업</button></div><div id="record-stats" class="stats-grid"></div><section class="card record-card"><div class="card-heading"><h2>날짜별 집중 기록</h2><label class="sr-only" for="record-date">공부 기록 날짜</label><input type="date" id="record-date"></div><div id="subject-summary" class="subject-summary"></div><div id="session-list"></div></section></section>
+      <footer class="footer"><span>doyoon study <span class="footer-dot">·</span> 나만의 공부 공간</span><span>매일, 조금씩.</span></footer>
+    </main>
+  </div>
+  <dialog id="task-dialog"><form id="task-form"><div class="dialog-heading"><div><span class="eyebrow">ONE THING AT A TIME</span><h2 id="task-dialog-title">새로운 학습 계획</h2></div><button type="button" class="icon-button" data-close="task-dialog" aria-label="닫기"><span data-icon="close"></span></button></div><label>할 일<input id="task-title" required maxlength="100" placeholder="예: 수학 오답 5문제 다시 풀기" autocomplete="off"></label><div class="form-row"><label>과목<select id="task-subject"><option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option><option>자율 학습</option><option>기타</option></select></label><label>예상 시간 (분)<input id="task-minutes" type="number" min="1" max="600" value="30" required></label></div><label>계획 날짜<input type="date" id="task-date" required></label><label class="checkbox-label"><input type="checkbox" id="task-important">중요한 할 일로 표시</label><div class="dialog-actions"><button type="button" class="button subtle" data-close="task-dialog">취소</button><button type="submit" class="button primary">계획 저장</button></div></form></dialog>
+  <dialog id="data-dialog"><div class="dialog-heading"><h2>데이터 관리</h2><button class="icon-button" data-close="data-dialog" aria-label="닫기"><span data-icon="close"></span></button></div><div class="data-notice"><span data-icon="database"></span><div><strong>이 브라우저에만 저장돼요.</strong><p>다른 기기와 자동으로 동기화되지 않습니다. 브라우저 데이터를 지우기 전에 백업 파일을 저장하세요.</p></div></div><button class="button primary wide" id="backup-data"><span data-icon="download"></span>계획과 기록 백업하기</button><label class="button subtle wide import-label" for="import-data"><span data-icon="upload"></span>백업 파일 불러오기</label><input type="file" id="import-data" accept=".json,application/json" class="sr-only"><p class="dialog-note">불러오기는 기존 데이터에 없는 계획과 기록을 추가합니다.</p></dialog>
+  <dialog id="confirm-dialog"><h2 id="confirm-title"></h2><p id="confirm-message"></p><div class="dialog-actions"><button class="button subtle" id="confirm-cancel">취소</button><button class="button primary" id="confirm-ok">확인</button></div></dialog>
+  <div id="toast" role="status" aria-live="polite" class="toast"></div>
+  <noscript><div class="noscript">공부 도구를 사용하려면 브라우저에서 JavaScript를 켜 주세요.</div></noscript>
+</body>
+</html>
