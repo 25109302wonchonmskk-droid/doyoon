@@ -1,9 +1,11 @@
 import {SPORTS,LEAGUES,leaguesForSport,matchKey,kstDate,validDate,queryDates,parseLeague} from '../sports.mjs';
+import {fetchKbo} from '../kbo.mjs';
 export async function getScores(date,leagueId='all',fetcher=fetch,sport='soccer'){
  const available=leaguesForSport(sport);
  const leagues=leagueId==='all'?available:available.filter(l=>l.id===leagueId);
  if(!validDate(date)||!leagues.length)throw new Error('INVALID_QUERY');
  const results=await Promise.allSettled(leagues.map(async league=>{
+  if(league.id==='kbo')return {...await fetchKbo(date,fetcher),league:league.id};
   const days=await Promise.all(queryDates(date).map(async day=>{
    const url=`https://site.api.espn.com/apis/site/v2/sports/${league.sport}/${league.id}/scoreboard?dates=${day}`;
    const response=await fetcher(url,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(16000)});
@@ -16,7 +18,8 @@ export async function getScores(date,leagueId='all',fetcher=fetch,sport='soccer'
  results.forEach((result,index)=>{if(result.status==='fulfilled'){matches.push(...result.value.matches);calendar.push(...result.value.dates);loaded.push(leagues[index].id);}else failures.push({id:leagues[index].id,name:leagues[index].name});});
  const ordered=[...new Map(matches.map(m=>[matchKey(m),m])).values()].sort((a,b)=>a.date.localeCompare(b.date));
  const past=[...new Set(calendar.filter(d=>d<date))].sort(),future=[...new Set(calendar.filter(d=>d>date))].sort();
- return {date,sport,timeZone:'Asia/Seoul',source:'ESPN',fetchedAt:new Date().toISOString(),matches:ordered,loadedLeagues:loaded,failures,previousMatchDate:past.at(-1)||null,nextMatchDate:future[0]||null};
+ const sources=[...new Set(loaded.map(id=>id==='kbo'?'네이버 스포츠':'ESPN'))];
+ return {date,sport,timeZone:'Asia/Seoul',source:sources.join(' · '),sources,fetchedAt:new Date().toISOString(),matches:ordered,loadedLeagues:loaded,failures,previousMatchDate:past.at(-1)||null,nextMatchDate:future[0]||null};
 }
 export async function handler(request,fetcher=fetch){
  if(request.method!=='GET')return Response.json({error:'GET 요청만 지원합니다.'},{status:405,headers:{Allow:'GET','Cache-Control':'no-store'}});

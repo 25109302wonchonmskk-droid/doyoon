@@ -9,20 +9,21 @@ export const SOCCER_LEAGUES = [
 export const SPORTS = [
  {id:'soccer',name:'축구',icon:'ball',summary:'유럽 주요 6개 리그',guide:'경과 시간을 분 단위로 표시합니다.'},
  {id:'basketball',name:'농구',icon:'basketball',summary:'NBA · WNBA',guide:'쿼터와 남은 시간, 연장전을 표시합니다.'},
- {id:'baseball',name:'야구',icon:'baseball',summary:'MLB',guide:'이닝과 초·말을 표시합니다.'},
+ {id:'baseball',name:'야구',icon:'baseball',summary:'KBO · MLB',guide:'이닝과 초·말을 표시합니다.'},
  {id:'football',name:'미식축구',icon:'football',summary:'NFL',guide:'쿼터와 남은 시간을 표시합니다.'},
  {id:'hockey',name:'아이스하키',icon:'hockey',summary:'NHL',guide:'피리어드와 남은 시간, 연장전을 표시합니다.'}
 ];
 export const LEAGUES = [...SOCCER_LEAGUES,
  {id:'nba',sport:'basketball',name:'NBA',english:'NBA',country:'미국·캐나다',code:'NBA',color:'#4778bb'},
  {id:'wnba',sport:'basketball',name:'WNBA',english:'WNBA',country:'미국·캐나다',code:'WN',color:'#d27939'},
+ {id:'kbo',sport:'baseball',name:'KBO 리그',english:'KBO',country:'대한민국',code:'KBO',color:'#345caf'},
  {id:'mlb',sport:'baseball',name:'MLB',english:'MLB',country:'미국·캐나다',code:'MLB',color:'#526992'},
  {id:'nfl',sport:'football',name:'NFL',english:'NFL',country:'미국',code:'NFL',color:'#b64e54'},
  {id:'nhl',sport:'hockey',name:'NHL',english:'NHL',country:'미국·캐나다',code:'NHL',color:'#638a9a'}
 ];
 export const leaguesForSport = sport=>LEAGUES.filter(l=>l.sport===sport);
 export const matchKey = match=>`${match.sport||'soccer'}:${match.id}`;
-export function parseFavorites(raw){const entries={};if(!raw||typeof raw!=='object'||Array.isArray(raw))return entries;for(const [key,value] of Object.entries(raw).slice(0,1000)){const full=/^\d+$/.test(key)?`soccer:${key}`:key;const [sport,id]=full.split(':');if(SPORTS.some(s=>s.id===sport)&&/^\d+$/.test(id||'')&&full===`${sport}:${id}`&&validDate(value?.date))entries[full]={date:value.date,sport};}return entries;}
+export function parseFavorites(raw){const entries={};if(!raw||typeof raw!=='object'||Array.isArray(raw))return entries;for(const [key,value] of Object.entries(raw).slice(0,1000)){const full=/^\d+$/.test(key)?`soccer:${key}`:key;const [sport,id]=full.split(':');const validId=/^\d+$/.test(id||'')||(sport==='baseball'&&/^kbo-[A-Z0-9]{8,32}$/.test(id||''));if(SPORTS.some(s=>s.id===sport)&&validId&&full===`${sport}:${id}`&&validDate(value?.date))entries[full]={date:value.date,sport};}return entries;}
 export function kstDate(value=Date.now()) {const d=new Date(new Date(value).getTime()+9*3600000);return Number.isFinite(+d)?d.toISOString().slice(0,10):'';}
 export function validDate(value){return typeof value==='string'&&/^(20\d\d|2100)-\d\d-\d\d$/.test(value)&&Number.isFinite(+new Date(`${value}T00:00:00Z`))&&new Date(`${value}T00:00:00Z`).toISOString().slice(0,10)===value;}
 export function shiftDate(date,days){const d=new Date(`${date}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
