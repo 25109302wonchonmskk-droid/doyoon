@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {LEAGUES,kstDate,validDate,queryDates,normalizeEvent,parseLeague,matchStatus} from '../football.mjs';
+import {LEAGUES,kstDate,validDate,queryDates,normalizeEvent,parseLeague,matchStatus} from '../sports.mjs';
 import {handler,getScores} from '../api/scores.js';
 const league=LEAGUES[0];
 function event(date='2026-10-04T16:00:00Z',state='post',completed=true){return {id:'123',date,status:{type:{state,completed,name:completed?'STATUS_FULL_TIME':'STATUS_SCHEDULED'}},competitions:[{competitors:[{homeAway:'away',score:'2',team:{id:'2',displayName:'Away',logo:'https://a.espncdn.com/test.png'}},{homeAway:'home',score:'0',team:{id:'1',displayName:'Home'}}]}]};}
