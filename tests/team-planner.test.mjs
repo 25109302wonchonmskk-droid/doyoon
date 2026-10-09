@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createTeamPlanner,TEAM_STORAGE_KEY} from '../team-planner.mjs';
+
+test('team calendar rejects stale team/month responses, saves selections and links dates to daily schedules',async t=>{
+ const old={document:globalThis.document,window:globalThis.window,localStorage:globalThis.localStorage,fetch:globalThis.fetch};
+ t.after(()=>{for(const [key,value] of Object.entries(old)){if(value===undefined)delete globalThis[key];else globalThis[key]=value;}});
+ const nodes=new Map(),node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',value:'',hidden:false,setAttribute(){},addEventListener(name,fn){this[name]=fn;}});return nodes.get(id);};
+ const stored=new Map();globalThis.document={querySelector:node};globalThis.window={addEventListener(){}};globalThis.localStorage={getItem:key=>stored.get(key)||null,setItem:(key,value)=>stored.set(key,value)};
+ const pending=[];globalThis.fetch=url=>new Promise(resolve=>pending.push({url,resolve}));
+ let sport='soccer',league='eng.1',date='2026-10-05',selectedDate;
+ const preferences={soccer:{id:'1',name:'Soccer Team',sport:'soccer',league:'eng.1'},baseball:{id:'LG',name:'LG',sport:'baseball',league:'kbo'}};
+ const planner=createTeamPlanner({getSport:()=>sport,getLeague:()=>league,getDate:()=>date,onLeagueChange:value=>{league=value;},onTeamChange(){},onDateChange:value=>{selectedDate=value;},onReloadTeams(){},teamName:t=>t.name,esc:String,time:()=> '18:30',initialPreferences:preferences});
+ const response=(sport,league,teamId,month)=>Response.json({sport,league,teamId,month,matches:[],failures:[],source:'Test',fetchedAt:'2026-10-05T09:00:00Z'});
+ const first=planner.sync();sport='baseball';league='kbo';const second=planner.sync();
+ pending[1].resolve(response('baseball','kbo','LG','2026-10'));await second;
+ pending[0].resolve(response('soccer','eng.1','1','2026-10'));await first;
+ assert.match(node('#team-agenda-title').textContent,/LG/);assert.doesNotMatch(node('#team-agenda-title').textContent,/Soccer/);
+ date='2026-11-01';const third=planner.sync();assert.match(node('#calendar-month').textContent,/11월/);assert.match(node('#team-agenda-list').innerHTML,/불러오는 중/);
+ pending[2].resolve(response('baseball','kbo','LG','2026-11'));await third;
+ node('#team-planner').click({target:{closest:selector=>selector==='[data-plan-date]'?{dataset:{planDate:'2026-11-12'}}:null}});assert.equal(selectedDate,'2026-11-12');
+ planner.receiveStandings({league:'kbo',groups:[{rows:[{team:{id:'LG',name:'LG'}},{team:{id:'KT',name:'KT'}}]}]});
+ node('#favorite-team').value='KT';node('#favorite-team').change();
+ assert.equal(JSON.parse(stored.get(TEAM_STORAGE_KEY)).baseball.id,'KT');assert.equal(planner.getSelectedTeam().id,'KT');
+ pending[3].resolve(response('baseball','kbo','KT','2026-11'));await new Promise(resolve=>setImmediate(resolve));
+ node('#clear-favorite-team').click();assert.equal(planner.getSelectedTeam(),null);assert.equal(node('#team-agenda').hidden,true);assert.equal(JSON.parse(stored.get(TEAM_STORAGE_KEY)).soccer.id,'1');
+ assert.equal(planner.isFavorite({sport:'baseball',league:'kbo',id:'KT'}),true);
+ assert.equal(planner.isFavorite({sport:'baseball',league:'kbo',id:'LG'}),true);
+ planner.toggleFavorite({sport:'baseball',league:'kbo',id:'KT',name:'KT'});
+ assert.equal(planner.isFavorite({sport:'baseball',league:'kbo',id:'KT'}),false);
+ assert.equal(planner.isFavorite({sport:'baseball',league:'kbo',id:'LG'}),true);
+});

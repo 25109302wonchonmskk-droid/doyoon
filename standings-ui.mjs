@@ -1,6 +1,7 @@
+import {apiUrl} from './api-url.mjs';
 import {LEAGUES,leaguesForSport} from './sports.mjs';
 
-export function createStandingsPanel({getSport,getLeague,onLeagueChange,teamName,logo,esc,time}){
+export function createStandingsPanel({getSport,getLeague,onLeagueChange,onData,onError,isTeamFavorite=()=>false,onTeamFavorite,teamName,logo,esc,time}){
  const $=selector=>document.querySelector(selector),cache=new Map();
  let currentLeague='',groupId='',data=null,error='',loading=false,requestId=0,controller;
  const leagueSelect=$('#standings-league'),groupSelect=$('#standings-group');
@@ -29,7 +30,7 @@ export function createStandingsPanel({getSport,getLeague,onLeagueChange,teamName
     return `<span class="recent-record">${esc(text)}</span>${record.played<10?`<small>최근 ${record.played}경기</small>`:''}`;
    };
    const streakBadge=row=>Number.isSafeInteger(row.losingStreak)&&row.losingStreak>=3?`<span class="rank-loss-streak" title="${esc(league.name)} 현재 ${row.losingStreak}연패">${row.losingStreak}연패</span>`:'';
-   $('#standings-content').innerHTML=`${data.notStarted?'<p class="standings-opening">정규시즌 개막 전 · 순위 미정</p>':''}<div class="standings-scroll" tabindex="0" aria-label="${esc(group.name)} 전체 순위"><table class="standings-table"><caption>${esc(league.name)} · ${esc(group.name)} 순위</caption><thead><tr><th scope="col" class="rank-number">순위</th><th scope="col" class="rank-team-heading">팀</th>${data.columns.map(c=>`<th scope="col" title="${esc(c.title)}" aria-label="${esc(c.title)}">${esc(c.label)}</th>`).join('')}<th scope="col" class="rank-recent-heading" title="현재 시즌 해당 리그의 최근 최대 10경기">최근 10경기</th></tr></thead><tbody>${rows.map(row=>`<tr><td class="rank-number ${row.rank===1?'rank-first':''}">${cell(row.rank)}</td><th scope="row"><span class="rank-team" title="${esc(teamName(row.team))}">${logo(row.team)}<span class="rank-team-label"><span class="rank-team-name">${esc(teamName(row.team))}</span>${streakBadge(row)}</span></span></th>${data.columns.map(c=>`<td class="${['points','pct'].includes(c.key)?'rank-key-stat':''}">${esc(value(row,c.key))}</td>`).join('')}<td class="rank-recent">${recentCell(row)}</td></tr>`).join('')}</tbody></table></div>`;
+   $('#standings-content').innerHTML=`${data.notStarted?'<p class="standings-opening">정규시즌 개막 전 · 순위 미정</p>':''}<div class="standings-scroll" tabindex="0" aria-label="${esc(group.name)} 전체 순위"><table class="standings-table"><caption>${esc(league.name)} · ${esc(group.name)} 순위</caption><thead><tr><th scope="col" class="rank-number">순위</th><th scope="col" class="rank-team-heading">팀</th>${data.columns.map(c=>`<th scope="col" title="${esc(c.title)}" aria-label="${esc(c.title)}">${esc(c.label)}</th>`).join('')}<th scope="col" class="rank-recent-heading" title="현재 시즌 해당 리그의 최근 최대 10경기">최근 10경기</th></tr></thead><tbody>${rows.map(row=>`<tr><td class="rank-number ${row.rank===1?'rank-first':''}">${cell(row.rank)}</td><th scope="row"><span class="rank-team" title="${esc(teamName(row.team))}">${onTeamFavorite?`<button class="team-star" data-rank-favorite="${esc(row.team.id)}" aria-label="${esc(teamName(row.team))} 팀 즐겨찾기 ${isTeamFavorite({...row.team,sport:data.sport,league:data.league})?'해제':'추가'}" aria-pressed="${isTeamFavorite({...row.team,sport:data.sport,league:data.league})}">${isTeamFavorite({...row.team,sport:data.sport,league:data.league})?'★':'☆'}</button>`:''}${logo(row.team)}<span class="rank-team-label"><span class="rank-team-name">${esc(teamName(row.team))}</span>${streakBadge(row)}</span></span></th>${data.columns.map(c=>`<td class="${['points','pct'].includes(c.key)?'rank-key-stat':''}">${esc(value(row,c.key))}</td>`).join('')}<td class="rank-recent">${recentCell(row)}</td></tr>`).join('')}</tbody></table></div>`;
   }
   $('#standings-foot').innerHTML=`<span>경기 날짜와 관계없는 최신 시즌 순위</span><span>3연패 이상 표시 · 선택한 리그 기록 기준</span><span>최근 전적: 현재 시즌 해당 리그의 최대 10경기</span>${data.recentFormIncomplete?'<span>일부 팀의 최근 전적을 확인하지 못했습니다.</span>':''}${data.streaksIncomplete?'<span>일부 팀의 연패 기록을 확인하지 못했습니다.</span>':''}${data.sport==='hockey'?'<span>OT패: 연장·슛아웃 패배</span>':''}<span>${esc(time(data.fetchedAt))} 확인 · 5분마다 갱신</span><a href="${esc(data.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(data.source)} 순위 원문 ↗</a>${data.recentFormSource?`<a href="${esc(data.recentFormSource.url)}" target="_blank" rel="noopener noreferrer">${esc(data.recentFormSource.name)} 최근 10경기 원문 ↗</a>`:''}`;
  }
@@ -42,21 +43,22 @@ export function createStandingsPanel({getSport,getLeague,onLeagueChange,teamName
   leagueSelect.innerHTML=available.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');leagueSelect.value=next;
   if(changed){data=null;groupId='';error='';}
   const saved=cache.get(next);
-  if(!force&&saved&&Date.now()-saved.savedAt<300000){data=saved.data;loading=false;error='';render();return;}
+  if(!force&&saved&&Date.now()-saved.savedAt<300000){data=saved.data;loading=false;error='';onData?.(data);render();return;}
   controller=new AbortController();const signal=controller.signal;
   const timeout=setTimeout(()=>{if(thisRequest===requestId)controller.abort();},28000);
   loading=true;error='';render();
   try{
-   const response=await fetch(`/api/standings?league=${encodeURIComponent(next)}`,{signal,headers:{Accept:'application/json'},cache:'no-store'});const json=await response.json();
+   const response=await fetch(apiUrl(`/api/standings?league=${encodeURIComponent(next)}`),{signal,headers:{Accept:'application/json'},cache:'no-store'});const json=await response.json();
    if(thisRequest!==requestId)return;
    if(!response.ok)throw new Error(json.error||'순위 데이터를 불러오지 못했습니다.');
    if(json.league!==next||json.sport!==getSport()||!json.season||!Array.isArray(json.groups)||!Array.isArray(json.columns))throw new Error('순위 데이터의 형식을 확인할 수 없습니다.');
-   data=json;cache.set(next,{data:json,savedAt:Date.now()});
-  }catch(e){if(thisRequest!==requestId)return;error=e.name==='AbortError'?'응답 시간이 초과되었습니다.':e instanceof SyntaxError?'서버 응답을 읽지 못했습니다.':e.message;}
+   data=json;cache.set(next,{data:json,savedAt:Date.now()});onData?.(json);
+  }catch(e){if(thisRequest!==requestId)return;error=e.name==='AbortError'?'응답 시간이 초과되었습니다.':e instanceof SyntaxError?'서버 응답을 읽지 못했습니다.':e.message;onError?.(next,error);}
   finally{clearTimeout(timeout);if(thisRequest===requestId){loading=false;render();}}
  }
  leagueSelect.addEventListener('change',()=>onLeagueChange(leagueSelect.value));
  groupSelect.addEventListener('change',()=>{groupId=groupSelect.value;render();});
  $('#standings-refresh').addEventListener('click',()=>sync(true));
- return {sync,refreshIfDue(){const saved=cache.get(currentLeague);if(!loading&&currentLeague&&(!saved||Date.now()-saved.savedAt>=300000))sync(true);}};
+ $('#standings-content').addEventListener('click',event=>{const button=event.target.closest('[data-rank-favorite]');if(!button||!data)return;const row=data.groups.flatMap(g=>g.rows).find(r=>r.team.id===button.dataset.rankFavorite);if(row)onTeamFavorite?.({...row.team,sport:data.sport,league:data.league});});
+ return {sync,render,refreshIfDue(){const saved=cache.get(currentLeague);if(!loading&&currentLeague&&(!saved||Date.now()-saved.savedAt>=300000))sync(true);}};
 }
